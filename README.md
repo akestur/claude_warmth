@@ -2,9 +2,9 @@
 
 Do you treat Claude like a person? **claude-warmth** measures how warmly you write to your AI compared with how you text the actual people in your life — on a 0–100 warmth scale calibrated entirely from your own iMessage history.
 
-It produces two things:
-
 ![claude-warmth in action](claude-warmth-showreel.gif)
+
+It produces two things:
 
 1. **A warmth trend chart** — your warmth toward Claude across your conversation history, plotted against three personal reference lines: how warmly you text your *Acquaintances*, *Friends*, and *Closest* people.
 2. **A local HTML report** — the chart, a full plain-language methodology (how the warmth index is defined, how the conversation index works, how the three thresholds are computed), and a clustering view of your contacts by warmth bucket.
