@@ -1,0 +1,15 @@
+{
+  "name": "claude-warmth",
+  "version": "0.2.0",
+  "description": "Measures how warmly you write to Claude compared with your human iMessage contacts. Produces an inline warmth-trend chart and a local HTML report with full methodology and a contact clustering view. All analysis runs locally; no data leaves your machine.",
+  "author": {
+    "name": "Akhil Kestur"
+  },
+  "keywords": [
+    "imessage",
+    "warmth",
+    "intimacy",
+    "linguistics",
+    "self-analysis"
+  ]
+}

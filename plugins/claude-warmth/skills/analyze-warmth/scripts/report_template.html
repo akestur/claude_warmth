@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>claude-warmth — how warmly you write to Claude</title>
+<style>
+:root{--bg:#000;--card:#1c1c1e;--card2:#2c2c2e;--sep:rgba(84,84,88,.6);--ink:#f5f5f7;--ink2:#aeaeb2;--muted:#86868b;
+--purple:#7F77DD;--green:#30d158;--amber:#BA9117;--gray:#888780;--orange:#ff9f0a}
+@media (prefers-color-scheme: light){:root{--bg:#f5f5f7;--card:#fff;--card2:#ececf0;--sep:rgba(60,60,67,.2);--ink:#1d1d1f;--ink2:#48484a;--muted:#86868b}}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.5 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",sans-serif;-webkit-font-smoothing:antialiased;padding:64px 24px 96px}
+.wrap{max-width:860px;margin:0 auto}
+h1{font-size:40px;font-weight:700;letter-spacing:-.022em}
+.lede{font-size:18px;color:var(--ink2);margin:14px 0 0;max-width:620px}
+section{margin-top:56px}
+.eyebrow{font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--orange);margin-bottom:6px}
+h2{font-size:26px;font-weight:700;letter-spacing:-.02em;margin-bottom:6px}
+h3{font-size:17px;font-weight:600;margin:22px 0 6px}
+.caption{font-size:14px;color:var(--muted);margin-bottom:20px;max-width:620px}
+.card{background:var(--card);border-radius:20px;padding:26px}
+.chartbox{position:relative;width:100%;height:380px}
+p.m{font-size:15px;color:var(--ink2);line-height:1.65;margin:8px 0;max-width:680px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-top:30px}
+.stat{background:var(--card);border-radius:16px;padding:18px 20px}
+.stat .n{font-size:28px;font-weight:700;color:var(--orange);font-variant-numeric:tabular-nums}
+.stat .l{font-size:13px;color:var(--muted);margin-top:3px;line-height:1.4}
+table.w{width:100%;font-size:14px;border-collapse:collapse;margin-top:10px}
+table.w td,table.w th{padding:7px 10px;text-align:left;border-top:1px solid var(--sep)}
+table.w th{color:var(--muted);font-weight:600;font-size:12.5px;border-top:none}
+.foot{font-size:13px;color:var(--muted);line-height:1.7}
+code{font:13px ui-monospace,Menlo,monospace;background:var(--card2);padding:1px 6px;border-radius:5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Your warmth with Claude</h1>
+  <p class="lede">How the way you write to Claude compares with the way you text people — measured entirely from your own messages, entirely on your own machine.</p>
+  <div class="stats" id="stats"></div>
+</header>
+
+<section>
+  <div class="eyebrow">The trend</div>
+  <h2>Warmth by conversation</h2>
+  <p class="caption">Your deliberative messages to Claude, scored on your personal warmth scale. Dashed lines mark how warmly you text the median contact of each group.</p>
+  <div class="card"><div class="chartbox"><canvas id="trend"></canvas></div></div>
+</section>
+
+<section>
+  <div class="eyebrow">Your people</div>
+  <h2>How your contacts cluster</h2>
+  <p class="caption">Every contact placed by how often you joke around with them (x) and how often you share feelings (y). Color = their warmth bucket. Dot size = how much you text them. Hover for details.</p>
+  <div class="card"><div class="chartbox"><canvas id="cluster"></canvas></div></div>
+</section>
+
+<section>
+  <div class="eyebrow">Methodology</div>
+  <h2>How this is calculated</h2>
+
+  <h3>The warmth index</h3>
+  <p class="m">Any batch of messages is scored on ten writing markers, each measured as the percentage of messages containing it: laughter (lol/haha), emoji, profanity, texting slang (u, tbh, idk…), self-disclosure (“i feel”, “i miss”, “i’m stressed”), hedging (“maybe”, “i think”), starting lowercase, and being entirely lowercase — plus two markers that count <em>against</em> warmth: ending sentences with a period, and formal politeness (“please”, “thank you”, “sorry”).</p>
+  <p class="m">Each rate is standardized against your own contacts (z-scored using the mean and spread across them, clamped at ±2.5 so no single feature dominates), then combined as a weighted sum:</p>
+  <table class="w"><thead><tr><th>Marker</th><th>Weight</th></tr></thead><tbody id="wtable"></tbody></table>
+  <p class="m">The result is rescaled to 0–100, where <b>0</b> is the mathematical floor — a hypothetical writer using none of the warm markers and the maximum of the formal ones — and <b>100</b> is your single warmest contact. Question rate and message length are deliberately excluded: prompting an AI inflates both in ways that say nothing about warmth.</p>
+
+  <h3>The conversation index</h3>
+  <p class="m">Your Claude conversations are ordered oldest to newest (by timestamp where available — Claude Code sessions carry real timestamps; Cowork sessions are ordered by recency). Only <em>deliberative</em> messages are scored: ones where you weigh, decide, or think out loud (“i’m thinking…”, “should i…”, “what do you think…”), detected by phrase matching. Operator-style commands (“fix the bug”, “pull the data”) are excluded because they have no analog in human texting and their terse form scores misleadingly.</p>
+  <p class="m">Because warmth markers are rare events, single messages can’t be scored meaningfully. Each point on the chart is a <b>rolling window</b> of consecutive deliberative messages (window size shown in the stats above; 15 when data allows, smaller with sparse data), plotted at the conversation where the window ends. Adjacent points share most of their window — read the arc, not individual wiggles.</p>
+
+  <h3>The three threshold lines</h3>
+  <p class="m">Contacts you’ve sent 100+ messages are ranked by their warmth score and split into thirds: the top third is labeled <b>Closest</b>, the middle <b>Friends</b>, the bottom <b>Acquaintances</b>. Each dashed line sits at the <em>median</em> score of its third. The labels are statistical, not social — the ranking measures how casually you write to someone, which usually tracks closeness but can’t verify it. A bantering coworker may rank above a parent you text logistics with.</p>
+
+  <h3>Honest limitations</h3>
+  <p class="m">The marker weights are judgment calls, not fitted parameters — different reasonable weights shift levels but preserve ordering. The deliberative filter is phrase-based and imperfect. The index measures <em>style</em>, not sincerity. Small windows are noisy. And the scale is calibrated to <em>your</em> texting habits, so scores are not comparable between people — that’s a feature.</p>
+</section>
+
+<section>
+  <div class="eyebrow">Privacy</div>
+  <div class="card foot">
+    Everything on this page was computed locally from your iMessage database and your local Claude conversation files. Nothing was uploaded. Contact identifiers are partially masked. Generated <span id="gen"></span> by the claude-warmth plugin.
+  </div>
+</section>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const DATA = __DATA__;
+const R = DATA.result, TH = DATA.thresholds, C = DATA.contacts;
+const isDark = matchMedia('(prefers-color-scheme: dark)').matches;
+const gridc = isDark ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.07)';
+const txtc = isDark ? '#aeaeb2' : '#48484a';
+document.getElementById('gen').textContent = DATA.generated;
+
+// stats
+document.getElementById('stats').innerHTML = `
+  <div class="stat"><div class="n">${R.overall_score}</div><div class="l">overall warmth with Claude (0–100)</div></div>
+  <div class="stat"><div class="n">${R.n_delib}</div><div class="l">deliberative messages scored (window of ${R.window})</div></div>
+  <div class="stat"><div class="n">${R.n_conversations}</div><div class="l">Claude conversations analyzed (${R.sources.join(' + ')})</div></div>`;
+
+// weights table
+const WNAMES = {laughter:'Laughter', emoji:'Emoji', profanity:'Profanity', abbrev:'Texting slang',
+  disclose:'Self-disclosure', hedge:'Hedging', lowercase_start:'Starts lowercase',
+  all_lowercase:'Entirely lowercase', ends_period:'Ends with period', polite:'Formal politeness'};
+document.getElementById('wtable').innerHTML = Object.entries(DATA.weights)
+  .sort((a,b)=>b[1]-a[1])
+  .map(([k,w])=>`<tr><td>${WNAMES[k]||k}</td><td>${w>0?'+':''}${w}</td></tr>`).join('');
+
+// trend chart
+const pts = R.points.map(p=>({x:p[0], y:p[1]}));
+const xmin = pts.length?pts[0].x:1, xmax = pts.length?pts[pts.length-1].x:2;
+const refs = [[TH.closest,'#30d158','Closest'],[TH.friends,'#BA9117','Friends'],[TH.acquaintances,'#888780','Acquaintances']];
+const labelPlugin = {id:'lbl', afterDraw(ch){
+  if(ch.canvas.id!=='trend')return;
+  const {ctx, scales:{x,y}} = ch; ctx.save();
+  ctx.font='600 12px -apple-system,sans-serif'; ctx.textAlign='right';
+  refs.forEach(([v,c,l])=>{ctx.fillStyle=c; ctx.fillText(l, x.getPixelForValue(xmax), y.getPixelForValue(v)-6);});
+  if(pts.length){const peak=pts.reduce((a,b)=>b.y>a.y?b:a);
+    ctx.fillStyle='#7F77DD'; ctx.textAlign='left';
+    ctx.fillText('Claude', x.getPixelForValue(peak.x)+8, y.getPixelForValue(peak.y)-10);}
+  ctx.restore();
+}};
+new Chart(document.getElementById('trend'), {
+  type:'line',
+  data:{datasets:[
+    {label:'Claude', data:pts, borderColor:'#7F77DD', backgroundColor:'#7F77DD', pointRadius:3, borderWidth:2.5, tension:.3},
+    ...refs.map(([v,c,l])=>({label:l, data:[{x:xmin,y:v},{x:xmax,y:v}], borderColor:c, borderDash:[6,5], pointRadius:0, borderWidth:1.5}))
+  ]},
+  options:{responsive:true, maintainAspectRatio:false, parsing:false,
+    plugins:{legend:{display:false}, tooltip:{callbacks:{label:c=>c.dataset.label+': '+c.parsed.y.toFixed(0)}}},
+    scales:{
+      y:{min:0,max:100,title:{display:true,text:'Warmth index',color:txtc,font:{size:13}},grid:{color:gridc},ticks:{color:txtc}},
+      x:{type:'linear',title:{display:true,text:'Claude conversation index (1 = earliest)',color:txtc,font:{size:13}},grid:{display:false},ticks:{color:txtc,precision:0}}
+    }},
+  plugins:[labelPlugin]
+});
+
+// cluster chart
+const BCOL = {closest:'#30d158', friends:'#BA9117', acquaintances:'#888780'};
+const clusterData = ['closest','friends','acquaintances'].map(b=>({
+  label: b[0].toUpperCase()+b.slice(1),
+  data: C.filter(c=>c.bucket===b).map(c=>({x:c.banter, y:c.feelings, r:Math.max(4,Math.min(13,3*Math.log10(c.n)-1.5)), n:c.n, score:c.score})),
+  backgroundColor: BCOL[b]+'CC', borderColor: BCOL[b], borderWidth:1
+}));
+new Chart(document.getElementById('cluster'), {
+  type:'bubble',
+  data:{datasets:clusterData},
+  options:{responsive:true, maintainAspectRatio:false,
+    plugins:{legend:{display:true, labels:{color:txtc, usePointStyle:true, boxWidth:8}},
+      tooltip:{callbacks:{label:c=>{const d=c.raw; return `banter ${d.x}% · feelings ${d.y}% · ${d.n} msgs · warmth ${d.score}`;}}}},
+    scales:{
+      y:{title:{display:true,text:'Texts where you share feelings (%)',color:txtc,font:{size:13}},grid:{color:gridc},ticks:{color:txtc},beginAtZero:true},
+      x:{title:{display:true,text:'Texts where you joke around (%) — lol, emoji, slang, swearing',color:txtc,font:{size:13}},grid:{color:gridc},ticks:{color:txtc},beginAtZero:true}
+    }}
+});
+</script>
+</body>
+</html>

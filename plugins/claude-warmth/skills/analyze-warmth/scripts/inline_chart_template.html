@@ -1,0 +1,38 @@
+<div style="position:relative;width:100%;height:360px">
+<canvas id="cwTrendInline" role="img" aria-label="Warmth index toward Claude by conversation index, 0 to 100, with dashed reference lines for Acquaintances, Friends, and Closest people.">Warmth trend chart. See the HTML report for full data.</canvas>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+const DATA = __DATA__;
+const isDark = matchMedia('(prefers-color-scheme: dark)').matches;
+const gridc = isDark ? 'rgba(255,255,255,.08)' : 'rgba(0,0,0,.06)';
+const txtc = isDark ? '#B4B2A9' : '#5F5E5A';
+const pts = DATA.points.map(p => ({x: p[0], y: p[1]}));
+const xmin = pts.length ? pts[0].x : 1, xmax = pts.length ? pts[pts.length - 1].x : 2;
+const refs = [[DATA.thresholds.closest, '#1D9E75', 'Closest'],
+              [DATA.thresholds.friends, '#BA7517', 'Friends'],
+              [DATA.thresholds.acquaintances, '#888780', 'Acquaintances']];
+const peak = pts.length ? pts.reduce((a, b) => b.y > a.y ? b : a) : null;
+const labelPlugin = {id: 'cwLbl', afterDraw(ch) {
+  const {ctx, scales: {x, y}} = ch; ctx.save();
+  ctx.font = '600 12px -apple-system, sans-serif'; ctx.textAlign = 'right';
+  refs.forEach(([v, c, l]) => { ctx.fillStyle = c; ctx.fillText(l, x.getPixelForValue(xmax), y.getPixelForValue(v) - 6); });
+  if (peak) { ctx.fillStyle = '#7F77DD'; ctx.textAlign = 'left';
+    ctx.fillText('Claude', x.getPixelForValue(peak.x) + 8, y.getPixelForValue(peak.y) - 10); }
+  ctx.restore();
+}};
+new Chart(document.getElementById('cwTrendInline'), {
+  type: 'line',
+  data: {datasets: [
+    {label: 'Claude', data: pts, borderColor: '#7F77DD', backgroundColor: '#7F77DD', pointRadius: 3, borderWidth: 2.5, tension: 0.3},
+    ...refs.map(([v, c, l]) => ({label: l, data: [{x: xmin, y: v}, {x: xmax, y: v}], borderColor: c, borderDash: [6, 5], pointRadius: 0, borderWidth: 1.5}))
+  ]},
+  options: {responsive: true, maintainAspectRatio: false, parsing: false,
+    plugins: {legend: {display: false}, tooltip: {callbacks: {label: c => c.dataset.label + ': ' + c.parsed.y.toFixed(0)}}},
+    scales: {
+      y: {min: 0, max: 100, title: {display: true, text: 'Warmth index', color: txtc, font: {size: 13}}, grid: {color: gridc}, ticks: {color: txtc, callback: v => Math.round(v)}},
+      x: {type: 'linear', min: Math.max(0, xmin - 1), max: xmax + 1, title: {display: true, text: 'Claude conversation index (1 = earliest)', color: txtc, font: {size: 13}}, grid: {display: false}, ticks: {color: txtc, precision: 0}}
+    }},
+  plugins: [labelPlugin]
+});
+</script>

@@ -1,0 +1,18 @@
+{
+  "name": "kestur-plugins",
+  "owner": {
+    "name": "Akhil Kestur"
+  },
+  "description": "Plugins by Akhil Kestur",
+  "plugins": [
+    {
+      "name": "claude-warmth",
+      "source": "./plugins/claude-warmth",
+      "description": "Measures how warmly you write to Claude compared with your human iMessage contacts — a personal warmth trend chart plus a local HTML report. All analysis runs locally.",
+      "author": { "name": "Akhil Kestur" },
+      "license": "MIT",
+      "keywords": ["imessage", "warmth", "self-analysis", "linguistics"],
+      "category": "fun"
+    }
+  ]
+}
